@@ -14,7 +14,6 @@ class query
 
     public static $joomla2;
     public static $joomla4;
-    
 
     function __construct($serverName, $userName, $password, $dbName)
     {
@@ -118,6 +117,28 @@ class query
             $this->conn->exec($sql);
         } catch (PDOException $e) {
             echo $sql . "<br>" . $e->getMessage();
+        }
+    }
+
+    function checkExistTable($table_name)
+    {
+
+        try {
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->conn->exec("SET NAMES 'utf8mb4'");
+
+            $stmt = $this->conn->prepare("show tables like '%$table_name';");
+            $stmt->execute();
+
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            echo $result . "<br>" . $e->getMessage();
+        }
+
+        if ($result == null) {
+            return null;
+        } else {
+            return (array_values($result[0])[0]);
         }
     }
 }

@@ -10,10 +10,13 @@ class field
     {
 
         $level = 2;
+        $table_map_name = "map_fields";
+
 
         // --#1-- select nessesary data from k2 fields table
         $select_table_query = "select * from $j2_table_fields";
-        
+
+        $data_id = query::$joomla2->getColumnMultiData($select_table_query, "id");
 
         $data_name = query::$joomla2->getColumnMultiData($select_table_query, "name");
 
@@ -22,34 +25,57 @@ class field
         $data_group = query::$joomla2->getColumnMultiData($select_table_query, "group");
 
         $data_ordering = query::$joomla2->getColumnMultiData($select_table_query, "ordering");
+
         ////////////////////////////////////////////////
         $field_count = query::$joomla2->getColumnData("select COUNT(id) as count_id from $j2_table_fields", "count_id");
 
         query::$joomla4->resetAutoIncrement($j4_table_fields);
         query::$joomla4->resetAutoIncrement($j4_table_assets);
 
+        //if map field table not exist,create a table
+        if (query::$joomla4->checkExistTable($table_map_name) === null) {
+            query::$joomla4->Insert("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
+        } else {
+            query::$joomla4->resetAutoIncrement($table_map_name);
+        }
+
+
         for ($i = 0; $i < $field_count; $i++) {
+
+
+            //--#10-- add to map table
+
+            //get asset_id
+            $asset_id = query::$joomla4->getColumnData("select MAX(id) as max_id from $j4_table_assets", "max_id") + 1;
+
+            //get id of fieldgroup in joomla4 fieldgroup table
+            $field_id = query::$joomla4->getColumnData("select MAX(id) as max_id from $j4_table_fields", "max_id") + 1;
+
+            query::$joomla4->Insert("insert into $table_map_name(j2_id,j4_id,j4_asset_id,name) values($data_id[$i],$field_id,$asset_id,'$data_name[$i]')");
 
             // --------- add field in asset table -------------
 
+
             // --#2--
             $update_fieldgroup_parent = false;
+            $parent_asset_id=8;
+
+            $fieldgroup_id = query::$joomla4->getColumnData("select * from map_fieldgroups where j2_id=$data_group[$i]", "j4_id");
 
             if ($data_group[$i] != 0) {
                 $level = 3;
                 $update_fieldgroup_parent = true;
 
                 // --#3--
-                //get name of fieldgroup of field
-                $fieldgroup_name = query::$joomla2->getColumnData("select * from $j2_table_fieldgroups where id=$data_group[$i]", "name");
 
                 //get asset_id of name of fieldgroup == parent_id in assets table
-                $parent_id = query::$joomla4->getColumnData("select * from $j4_table_assets where name like '%com_content.fieldgroup%' && title='$fieldgroup_name'", "id");
+                $parent_asset_id = query::$joomla4->getColumnData("select * from map_fieldgroups where j2_id=$data_group[$i]", "j4_asset_id");
+
             } else {
                 // --#4--
                 $level = 2;
                 $update_fieldgroup_parent = false;
-                $parent_id = 8;
+                $parent_asset_id = 8;
             }
 
             // --#5--
@@ -59,14 +85,13 @@ class field
             // --#6--
             //get id of new field in field table == name in assets table
 
-            $field_id = query::$joomla4->getColumnData("select max(id) as max_id from $j4_table_fields", "max_id")+1;
 
-            query::$joomla4->Insert("insert into hcnov_assets (parent_id,lft,rgt,level,name,title,rules) values($parent_id,$asset_lft,$asset_rgt,$level,'com_content.field.$field_id','$data_name[$i]','{}');");
+            query::$joomla4->Insert("insert into hcnov_assets (parent_id,lft,rgt,level,name,title,rules) values($parent_asset_id,$asset_lft,$asset_rgt,$level,'com_content.field.$field_id','$data_name[$i]','{}');");
 
             // --#7--
             //update lft & rgt of fieldgroup
             if ($update_fieldgroup_parent) {
-                query::$joomla4->Insert("update hcnov_assets set rgt=rgt+2 where id = $parent_id;");
+                query::$joomla4->Insert("update hcnov_assets set rgt=rgt+2 where id = $parent_asset_id;");
             }
 
             // --------- add field in field table joomla4 ---------------
@@ -76,11 +101,7 @@ class field
             // this line return a object
             $data_value = json_decode(query::$joomla2->getColumnData($select_table_query, "value"))[0];
 
-            //get maximum id in asset table
-            $asset_id = query::$joomla4->getColumnData("select max(id) as max_id from hcnov_assets", "max_id");
-
             // --#9--
-            $fieldgroup_id = query::$joomla4->getColumnData("select * from $j4_table_fieldgroups where title='$fieldgroup_name'", "id");
 
             // a string for params column in joomla4 fields table
             $params_json = '{"hint":"","class":"","label_class":"","show_on":"","showon":"","render_class":"","value_render_class":"","showlabel":"1","label_render_class":"","display":"2","prefix":"","suffix":"","layout":"","display_readonly":"2"}';
