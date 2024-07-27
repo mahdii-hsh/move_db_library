@@ -14,6 +14,7 @@ class query
 
     public static $joomla2;
     public static $joomla4;
+    
 
     function __construct($serverName, $userName, $password, $dbName)
     {

@@ -30,6 +30,7 @@ function getColumnData($query, $column)
     }
     // $conn = null;
     return $data;
+    
 }
 
 $json_str = getColumnData("select * from i0kno_k2_items where id=2010;", "extra_fields");

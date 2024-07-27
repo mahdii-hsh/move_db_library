@@ -19,7 +19,7 @@ class category
         $j2_select_item_query = "select * from $j2_table_items";
 
         $data_name = query::$joomla2->getColumnMultiData($j2_select_category_query, "name");
-
+        
         $data_alias = query::$joomla2->getColumnMultiData($j2_select_category_query, "alias");
 
         $data_description = query::$joomla2->getColumnMultiData($j2_select_category_query, "description");

@@ -7,6 +7,7 @@ class article
 
     static function add_atricle($j2_table_items, $j2_table_category, $j2_table_fields, $j4_table_content, $j4_table_category, $j4_table_assets, $j4_table_fields, $j4_table_field_values)
     {
+        
 
         // --#1-- get data
         $j2_select_category_query = "select * from $j2_table_items where id=2010";

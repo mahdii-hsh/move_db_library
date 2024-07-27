@@ -13,6 +13,7 @@ class field
 
         // --#1-- select nessesary data from k2 fields table
         $select_table_query = "select * from $j2_table_fields";
+        
 
         $data_name = query::$joomla2->getColumnMultiData($select_table_query, "name");
 

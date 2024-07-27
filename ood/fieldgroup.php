@@ -9,6 +9,7 @@ class fieldgroup
 
         $parent_id = 8;
         $level = 2;
+        
 
         //get name of fieldgroup from k2
         $data_name = query::$joomla2->getColumnMultiData("select * from $j2_table_fieldgroup", "name");
