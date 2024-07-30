@@ -4,7 +4,7 @@ require_once './query.php';
 
 class category
 {
-    static function add_category($j2_table_categories, $j2_table_items, $j4_table_categories, $j4_table_assets)
+    static function add_category($j2_table_categories, $j2_table_fields, $j2_table_items, $j4_table_categories, $j4_table_assets, $j4_table_fields, $j4_table_field_category)
     {
 
 
@@ -14,6 +14,10 @@ class category
         $category_level = 1;
 
         $table_map_name = "map_categories";
+
+        $table_map_fieldgroup = "map_fieldgroups";
+
+        $table_map_field = "map_fields";
 
         //--#1-- select nessesary data from k2 categories table
         $j2_select_category_query = "select * from $j2_table_categories";
@@ -34,14 +38,19 @@ class category
 
         $data_published = query::$joomla2->getColumnMultiData($j2_select_category_query, "published");
 
-        // $data_ordering = query::$joomla2->getColumnMultiData($j2_select_category_query, "ordering");
-
         $data_language = query::$joomla2->getColumnMultiData($j2_select_category_query, "language");
         //this query for get hits of category
         $data_catid = query::$joomla2->getColumnMultiData($j2_select_item_query, "catid");
         $data_hits = query::$joomla2->getColumnMultiData($j2_select_item_query, "hits");
+
+        $data_field_j2_id = query::$joomla2->getColumnMultiData("select * from $j2_table_fields", "id");
+
+        $data_field_j2_group = query::$joomla2->getColumnMultiData("select * from $j2_table_fields", "group");
+
         ////////////////////////////////////////////////
         $category_count = query::$joomla2->getColumnData("select COUNT(id) as count_id from $j2_table_categories", "count_id");
+
+        $field_count = query::$joomla2->getColumnData("select COUNT(id) as count_id from $j2_table_fields", "count_id");
 
         query::$joomla4->resetAutoIncrement($j4_table_categories);
         query::$joomla4->resetAutoIncrement($j4_table_assets);
@@ -107,6 +116,22 @@ class category
             $asset_name = "com_content.category." . $category_id;
 
             query::$joomla4->Insert("insert into $j4_table_assets (parent_id,lft,rgt,level,name,title,rules) values(8,$asset_lft,$asset_rgt,$asset_level,'$asset_name','$data_name[$i]','{}')");
+
+            if ($data_extra_fields_group[$i] !== 0) {
+
+                $category_id = query::$joomla4->getColumnData("select * from $table_map_name where j2_id=$data_id[$i]", "j4_id");
+
+                echo "data: " . $data_extra_fields_group[$i];
+
+                for ($j = 0; $j < $field_count; $j++) {
+
+                    if ($data_extra_fields_group[$i] === $data_field_j2_group[$j]) {
+                        $data_field_j4_id = query::$joomla4->getColumnData("select * from $table_map_field where j2_id=$data_field_j2_id[$j]", "j4_id");
+
+                        query::$joomla4->Insert("insert into $j4_table_field_category values($data_field_j4_id,$category_id)");
+                    }
+                }
+            }
         }
 
         // ------------- update hits and parent_id in joomla4 category table -------------
@@ -118,7 +143,7 @@ class category
 
             // $category_hits=query::$joomla2->getColumnData("select * from $j2_table_items where catid=$data_id[$i]","hits");
 
-            $category_id=query::$joomla4->getColumnData("select * from $table_map_name where j2_id=$data_id[$i]","j4_id");
+            $category_id = query::$joomla4->getColumnData("select * from $table_map_name where j2_id=$data_id[$i]", "j4_id");
 
             // query::$joomla4->Insert("update $j4_table_categories set hits=$category_hits where id=$category_id");
 
@@ -133,7 +158,7 @@ class category
                 //update lft & rgt of parent of category
                 query::$joomla4->Insert("update $j4_table_categories set rgt=rgt+2 where id = $parent_id;");
 
-                $category_asset_id=query::$joomla4->getColumnData("select * from $table_map_name where j2_id=$data_id[$i]","j4_asset_id");
+                $category_asset_id = query::$joomla4->getColumnData("select * from $table_map_name where j2_id=$data_id[$i]", "j4_asset_id");
 
                 query::$joomla4->Insert("update $j4_table_categories set parent_id=$parent_id where id=$category_id");
 
@@ -141,7 +166,6 @@ class category
 
                 //update asset_id of parent
                 query::$joomla4->Insert("update $j4_table_assets set rgt=rgt+2 where id=$parent_asset_id");
-
             }
         }
     }
