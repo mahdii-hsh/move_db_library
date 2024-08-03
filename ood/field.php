@@ -13,8 +13,8 @@ class field
         $table_map_name = "map_fields";
 
 
-        // --#1-- select nessesary data from k2 fields table
-        $select_table_query = "select * from $j2_table_fields";
+        // --#1-- SELECT nessesary data from k2 fields table
+        $select_table_query = "SELECT * from $j2_table_fields";
 
         $data_id = query::$joomla2->getColumnMultiData($select_table_query, "id");
 
@@ -27,7 +27,7 @@ class field
         $data_ordering = query::$joomla2->getColumnMultiData($select_table_query, "ordering");
 
         ////////////////////////////////////////////////
-        $field_count = query::$joomla2->getColumnData("select COUNT(id) as count_id from $j2_table_fields", "count_id");
+        $field_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_fields", "count_id");
 
         query::$joomla4->resetAutoIncrement($j4_table_fields);
         query::$joomla4->resetAutoIncrement($j4_table_assets);
@@ -46,12 +46,12 @@ class field
             //--#10-- add to map table
 
             //get asset_id
-            $asset_id = query::$joomla4->getColumnData("select MAX(id) as max_id from $j4_table_assets", "max_id") + 1;
+            $asset_id = query::$joomla4->getColumnData("SELECT MAX(id) as max_id from $j4_table_assets", "max_id") + 1;
 
             //get id of fieldgroup in joomla4 fieldgroup table
-            $field_id = query::$joomla4->getColumnData("select MAX(id) as max_id from $j4_table_fields", "max_id") + 1;
+            $field_id = query::$joomla4->getColumnData("SELECT MAX(id) as max_id from $j4_table_fields", "max_id") + 1;
 
-            query::$joomla4->Insert("insert into $table_map_name(j2_id,j4_id,j4_asset_id,name) values($data_id[$i],$field_id,$asset_id,'$data_name[$i]')");
+            query::$joomla4->Insert("INSERT INTO $table_map_name(j2_id,j4_id,j4_asset_id,`name`) values($data_id[$i],$field_id,$asset_id,'$data_name[$i]')");
 
             // --------- add field in asset table -------------
 
@@ -60,7 +60,7 @@ class field
             $update_fieldgroup_parent = false;
             $parent_asset_id=8;
 
-            $fieldgroup_id = query::$joomla4->getColumnData("select * from map_fieldgroups where j2_id=$data_group[$i]", "j4_id");
+            $fieldgroup_id = query::$joomla4->getColumnData("SELECT * from map_fieldgroups where j2_id=$data_group[$i]", "j4_id");
 
             if ($data_group[$i] != 0) {
                 $level = 3;
@@ -69,7 +69,7 @@ class field
                 // --#3--
 
                 //get asset_id of name of fieldgroup == parent_id in assets table
-                $parent_asset_id = query::$joomla4->getColumnData("select * from map_fieldgroups where j2_id=$data_group[$i]", "j4_asset_id");
+                $parent_asset_id = query::$joomla4->getColumnData("SELECT * from map_fieldgroups where j2_id=$data_group[$i]", "j4_asset_id");
 
             } else {
                 // --#4--
@@ -79,14 +79,14 @@ class field
             }
 
             // --#5--
-            $asset_lft = query::$joomla4->getColumnData("select max(rgt) as max_rgt from $j4_table_assets where level=$level", "max_rgt") + 1;
+            $asset_lft = query::$joomla4->getColumnData("SELECT max(rgt) as max_rgt from $j4_table_assets where `level`=$level", "max_rgt") + 1;
             $asset_rgt = $asset_lft + 1;
 
             // --#6--
             //get id of new field in field table == name in assets table
 
 
-            query::$joomla4->Insert("insert into hcnov_assets (parent_id,lft,rgt,level,name,title,rules) values($parent_asset_id,$asset_lft,$asset_rgt,$level,'com_content.field.$field_id','$data_name[$i]','{}');");
+            query::$joomla4->Insert("INSERT INTO hcnov_assets (parent_id,lft,rgt,`level`,`name`,title,rules) values($parent_asset_id,$asset_lft,$asset_rgt,$level,'com_content.field.$field_id','$data_name[$i]','{}');");
 
             // --#7--
             //update lft & rgt of fieldgroup
@@ -109,7 +109,7 @@ class field
             // a string for fieldparams column in joomla4 fields table
             $fieldparams_json = '{"filter":"","maxlength":""}';
 
-            query::$joomla4->Insert("insert into $j4_table_fields(asset_id,context,group_id,title,name,label,default_value,type,note,description,state,required,only_use_in_subform,ordering,params,fieldparams,language,created_time,created_user_id,modified_time,modified_by,access) values($asset_id,'com_content.article',$fieldgroup_id,'$data_name[$i]','$data_name[$i]','$data_name[$i]','','$data_type[$i]','','',1,$data_value->required,0,$data_ordering[$i],'$params_json','$fieldparams_json','*',NOW(),926,NOW(),926,1);");
+            query::$joomla4->Insert("INSERT INTO $j4_table_fields(asset_id,context,group_id,title,`name`,label,default_value,`type`,note,`description`,`state`,`required`,only_use_in_subform,ordering,params,fieldparams,`language`,created_time,created_user_id,modified_time,modified_by,access) values($asset_id,'com_content.article',$fieldgroup_id,'$data_name[$i]','$data_name[$i]','$data_name[$i]','','$data_type[$i]','','',1,$data_value->required,0,$data_ordering[$i],'$params_json','$fieldparams_json','*',NOW(),926,NOW(),926,1);");
         }
     }
 }
