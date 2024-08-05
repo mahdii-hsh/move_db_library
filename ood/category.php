@@ -13,6 +13,13 @@ class category
         //level in category level
         $category_level = 1;
 
+        $parametter_insert_map = [];
+        $parametter_insert_assets = [];
+        $parametter_insert_category = [];
+        $parametter_insert_field_category = [];
+        $parametter_update_asset = [];
+        $parametter_update_category = [];
+
         $table_map_name = "map_categories";
 
         $table_map_fieldgroup = "map_fieldgroups";
@@ -57,7 +64,7 @@ class category
         //if map category table not exist,create a table
 
         if (query::$joomla4->checkExistTable($table_map_name) === null) {
-            query::$joomla4->Insert("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
+            query::$joomla4->createTable("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
         } else {
             query::$joomla4->resetAutoIncrement($table_map_name);
         }
@@ -66,7 +73,7 @@ class category
         for ($i = 0; $i < $category_count; $i++) {
 
 
-            if ($data_parent[$i] != 0) {
+            if ($data_parent[$i] !== 0) {
                 $asset_level = 3;
                 $category_level = 2;
             } else {
@@ -84,9 +91,6 @@ class category
 
             $category_id = query::$joomla4->getColumnData("SELECT max(id) as max_id from $j4_table_categories", "max_id") + 1;
 
-            query::$joomla4->Insert("INSERT INTO $table_map_name (j2_id,j4_id,j4_asset_id,`name`) values($data_id[$i],$category_id,$asset_id,'$data_name[$i]')");
-
-
             // --#3--
             //alias in joomla4 should be lower case
             $path = strtolower($data_alias[$i]);
@@ -94,19 +98,7 @@ class category
             $json_params = '{"category_layout":"","image":"","image_alt":""}';
             $json_metadata = '{"author":"","robots":""}';
 
-            // after this insert : update asset_id,parent_id,hits,path
-            query::$joomla4->Insert("INSERT INTO $j4_table_categories (asset_id,parent_id,lft,rgt,`level`,`path`,extension,title,alias,note,`description`,published,access,params,metadesc,metakey,metadata,created_user_id,created_time,modified_user_id,modified_time,hits,`language`,`version`) values($asset_id,1,$category_lft,$category_rgt,$category_level,'$path','com_content','$data_name[$i]','$data_alias[$i]','','$data_description[$i]',$data_published[$i],1,'$json_params','','','$json_metadata',926,NOW(),926,NOW(),0,'$data_language[$i]',1)");
-
-            //--#4-- check for update rgt of root in category table
-
-            $root_rgt = query::$joomla4->getColumnData("SELECT * from $j4_table_categories where title='ROOT';", "rgt");
-
-            if ($category_rgt >= $root_rgt) {
-                $new_root_rgt = $category_rgt + 1;
-                query::$joomla4->Insert("UPDATE $j4_table_categories set rgt=$new_root_rgt where title='ROOT'");
-            }
-
-            // --#7 -- ----------add category in assets table ------------
+            // --#7 -- ----------variables for asset table ------------
 
             $asset_lft = query::$joomla4->getColumnData("SELECT max(rgt) as max_rgt from $j4_table_assets where `level`=$asset_level ", "max_rgt") + 1;
 
@@ -114,7 +106,66 @@ class category
 
             $asset_name = "com_content.category." . $category_id;
 
-            query::$joomla4->Insert("INSERT INTO $j4_table_assets (parent_id,lft,rgt,`level`,`name`,title,rules) values(8,$asset_lft,$asset_rgt,$asset_level,'$asset_name','$data_name[$i]','{}')");
+            //--#3-- ---------INSERT INTO map table----------
+            $parametter_insert_map[':j2_id'] = $data_id[$i];
+            $parametter_insert_map[':j4_id'] = $category_id;
+            $parametter_insert_map[':j4_asset_id'] = $asset_id;
+            $parametter_insert_map[':name'] = $data_name[$i];
+
+            query::$joomla4->Insert("INSERT INTO $table_map_name (j2_id,j4_id,j4_asset_id,`name`) VALUES(:j2_id,:j4_id,:j4_asset_id,:name)", $parametter_insert_map);
+
+            //--#4-- ---------INSERT INTO joomla4 field table------- 
+
+            $parametter_insert_category[':asset_id'] = $asset_id;
+            $parametter_insert_category[':parent_id'] = 1;
+            $parametter_insert_category[':lft'] = $category_lft;
+            $parametter_insert_category[':rgt'] = $category_rgt;
+            $parametter_insert_category[':level'] = $category_level;
+            $parametter_insert_category[':path'] = $path;
+            $parametter_insert_category[':extension'] = 'com_content';
+            $parametter_insert_category[':title'] = $data_name[$i];
+            $parametter_insert_category[':alias'] = $data_alias[$i];
+            $parametter_insert_category[':note'] = '';
+            $parametter_insert_category[':description'] = $data_description[$i];
+            $parametter_insert_category[':published'] = $data_published[$i];
+            $parametter_insert_category[':access'] = 1;
+            $parametter_insert_category[':params'] = $json_params;
+            $parametter_insert_category[':metadesc'] = '';
+            $parametter_insert_category[':metakey'] = '';
+            $parametter_insert_category[':metadata'] = $json_metadata;
+            $parametter_insert_category[':created_user_id'] = query::$user_id;
+            $parametter_insert_category[':created_time'] = date("Y-m-d h:i:s");
+            $parametter_insert_category[':modified_user_id'] = query::$user_id;
+            $parametter_insert_category[':modified_time'] = date("Y-m-d h:i:s");
+            $parametter_insert_category[':hits'] = 0;
+            $parametter_insert_category[':language'] = $data_language[$i];
+            $parametter_insert_category[':version'] = 1;
+
+            // after this insert : update asset_id,parent_id,hits,path
+            query::$joomla4->Insert("INSERT INTO $j4_table_categories (asset_id,parent_id,lft,rgt,`level`,`path`,extension,title,alias,note,`description`,published,access,params,metadesc,metakey,metadata,created_user_id,created_time,modified_user_id,modified_time,hits,`language`,`version`) VALUES (:asset_id,:parent_id,:lft,:rgt,:level,:path,:extension,:title,:alias,:note,:description,:published,:access,:params,:metadesc,:metakey,:metadata,:created_user_id,:created_time,:modified_user_id,:modified_time,:hits,:language,:version)",$parametter_insert_category);
+
+            //--#4-- check for update rgt of root in category table
+
+            $root_rgt = query::$joomla4->getColumnData("SELECT * from $j4_table_categories where title='ROOT';", "rgt");
+
+            if ($category_rgt >= $root_rgt) {
+                $new_root_rgt = $category_rgt + 1;
+                $parametter_update_category['root_rgt'] = $new_root_rgt;
+
+                query::$joomla4->Insert("UPDATE $j4_table_categories set rgt=:root_rgt where title='ROOT'",$parametter_update_category);
+            }
+
+            //--#4-- ---------INSERT INTO joomla4 assets table------- 
+
+            $parametter_insert_assets[':parent_id'] = 8;
+            $parametter_insert_assets[':lft'] = $asset_lft;
+            $parametter_insert_assets[':rgt'] = $asset_rgt;
+            $parametter_insert_assets[':level'] = $asset_level;
+            $parametter_insert_assets[':name'] = $asset_name;
+            $parametter_insert_assets[':title'] = $data_name[$i];
+            $parametter_insert_assets[':rules'] = '{}';
+
+            query::$joomla4->Insert("INSERT INTO $j4_table_assets (parent_id,lft,rgt,`level`,`name`,title,rules) VALUES (:parent_id,:lft,:rgt,:level,:name,:title,:rules);", $parametter_insert_assets);
 
             // if ($data_extra_fields_group[$i] !== 0) {
 
@@ -134,17 +185,21 @@ class category
 
                 $j2_field_id = query::$joomla2->getColumnMultiData("SELECT * from $j2_table_fields where `group`=$data_extra_fields_group[$i]", "id");
 
-                echo "<hr/>";
-                echo var_dump($j2_field_id);
-                echo "category_id" . $category_id;
-                echo "count" . count($j2_field_id);
-                echo "< hr/>";
+                // echo "<hr/>";
+                // echo var_dump($j2_field_id);
+                // echo "category_id" . $category_id;
+                // echo "count" . count($j2_field_id);
+                // echo "< hr/>";
 
                 for ($j = 0; $j < count($j2_field_id); $j++) {
 
                     $j4_field_id = query::$joomla4->getColumnData("SELECT * from $table_map_field where j2_id=$j2_field_id[$j]", "j4_id");
 
-                    query::$joomla4->Insert("INSERT INTO $j4_table_field_category values($j4_field_id,$category_id)");
+                    //--#4-- ---------INSERT INTO joomla4 field_category table------- 
+                    $parametter_insert_field_category['field_id']=$j4_field_id;
+                    $parametter_insert_field_category['category_id']=$category_id;
+
+                    query::$joomla4->Insert("INSERT INTO $j4_table_field_category (field_id,category_id) VALUES (:field_id,:category_id)",$parametter_insert_field_category);
                 }
             }
         }
@@ -156,31 +211,42 @@ class category
 
             // --#8-- update hits
 
-            // $category_hits=query::$joomla2->getColumnData("SELECT * from $j2_table_items where catid=$data_id[$i]","hits");
-
             $category_id = query::$joomla4->getColumnData("SELECT * from $table_map_name where j2_id=$data_id[$i]", "j4_id");
 
-            // query::$joomla4->Insert("update $j4_table_categories set hits=$category_hits where id=$category_id");
 
             // --#5-- update parent_id in asset table and category table
 
-            if ($data_parent[$i] != 0) {
+            if ($data_parent[$i] !== 0) {
 
                 $parent_id = query::$joomla4->getColumnData("SELECT * from $table_map_name where j2_id=$data_parent[$i];", "j4_id");
 
                 $parent_asset_id = query::$joomla4->getColumnData("SELECT * from $table_map_name where j2_id=$data_parent[$i];", "j4_asset_id");
 
-                //update lft & rgt of parent of category
-                query::$joomla4->Insert("update $j4_table_categories set rgt=rgt+2 where id = $parent_id;");
+                // ------UPDATE joomla4 category table -------------------------
+                //update lft & rgt of parent of category $ parent of category
+                //delete root_rgt element
+                array_pop($parametter_update_category);
+                $parametter_update_category[':parent_id']=$parent_id;
+                $parametter_update_category[':category_id']=$category_id;
+
+                query::$joomla4->Insert("UPDATE $j4_table_categories set parent_id=:parent_id where id=:category_id",$parametter_update_category);
+
+                array_pop($parametter_update_category);
+                
+                query::$joomla4->Insert("update $j4_table_categories set rgt=rgt+2 where id = :parent_id;",$parametter_update_category);
+                // ------UPDATE joomla4 asset table ------------------------
 
                 $category_asset_id = query::$joomla4->getColumnData("SELECT * from $table_map_name where j2_id=$data_id[$i]", "j4_asset_id");
 
-                query::$joomla4->Insert("update $j4_table_categories set parent_id=$parent_id where id=$category_id");
+                $parametter_update_asset[':parent_asset_id']=$parent_asset_id;
+                $parametter_update_asset[':category_asset_id']=$category_asset_id;
+                                
+                query::$joomla4->Insert("update $j4_table_assets set parent_id=:parent_asset_id where id=:category_asset_id",$parametter_update_asset);
 
-                query::$joomla4->Insert("update $j4_table_assets set parent_id=$parent_asset_id where id=$category_asset_id");
+                array_pop($parametter_update_asset);
 
                 //update asset_id of parent
-                query::$joomla4->Insert("update $j4_table_assets set rgt=rgt+2 where id=$parent_asset_id");
+                query::$joomla4->Insert("update $j4_table_assets set rgt=rgt+2 where id=:parent_asset_id",$parametter_update_asset);
             }
         }
     }
