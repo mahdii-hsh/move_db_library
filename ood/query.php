@@ -13,6 +13,7 @@ class query
 
     public static $joomla2;
     public static $joomla4;
+    public static $user_id;
 
     function __construct($serverName, $userName, $password, $dbName)
     {
@@ -70,18 +71,22 @@ class query
         return $dataArray;
     }
 
-    function Insert($query)
+    function Insert($query, $parametters)
     {
 
         try {
 
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             // set the PDO error mode to exception
-            $sql = $query;
-            // use exec() because no results are returned
-            $this->conn->exec($sql);
+            $stmt = $this->conn->prepare($query);
+
+            foreach ($parametters as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+
+            $stmt->execute();
         } catch (PDOException $e) {
-            echo $sql . "<br>" . $e->getMessage();
+            echo "Error: " . $e->getMessage();
         }
         // $conn = null;
     }
@@ -139,5 +144,21 @@ class query
         } else {
             return (array_values($result[0])[0]);
         }
+    }
+
+    function createTable($query)
+    {
+
+        try {
+
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            // set the PDO error mode to exception
+            $sql = $query;
+            // use exec() because no results are returned
+            $this->conn->exec($sql);
+        } catch (PDOException $e) {
+            echo $sql . "<br>" . $e->getMessage();
+        }
+        // $conn = null;
     }
 }
