@@ -30,6 +30,8 @@ class field
 
         $data_ordering = query::$joomla2->getColumnMultiData($select_table_query, "ordering");
 
+        $data_value=query::$joomla2->getColumnMultiData($select_table_query, "value");
+
         ////////////////////////////////////////////////
         $field_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_fields", "count_id");
 
@@ -59,7 +61,7 @@ class field
 
             // --#8--
             // this line return a object
-            $data_value = json_decode(query::$joomla2->getColumnData($select_table_query, "value"))[0];
+            $data_value_decode = json_decode($data_value[$i])[0];
 
             // --#9--
 
@@ -68,6 +70,13 @@ class field
 
             // a string for fieldparams column in joomla4 fields table
             $fieldparams_json = '{"filter":"","maxlength":""}';
+
+            if($data_type[$i]==='textfield'){
+                $field_type='text';
+            }
+            else{
+                $field_type=$data_type[$i];
+            }
 
             //--#3-- ---------INSERT INTO map table----------
             $parametter_insert_map[':j2_id'] = $data_id[$i];
@@ -106,6 +115,8 @@ class field
             // --#6--
             //get id of new field in field table == name in assets table
 
+            //--#4-- ---------INSERT INTO joomla4 assets table------- 
+            
             $parametter_insert_assets[':parent_id'] = $parent_asset_id;
             $parametter_insert_assets[':lft'] = $asset_lft;
             $parametter_insert_assets[':rgt'] = $asset_rgt;
@@ -133,11 +144,11 @@ class field
             $parametter_insert_field[':name'] = $data_name[$i];
             $parametter_insert_field[':label'] = $data_name[$i];
             $parametter_insert_field[':default_value'] = '';
-            $parametter_insert_field[':type'] = $data_type[$i];
+            $parametter_insert_field[':type'] = $field_type;
             $parametter_insert_field[':note'] = '';
             $parametter_insert_field[':description'] = '';
             $parametter_insert_field[':state'] = 1;
-            $parametter_insert_field[':required'] = $data_value->required;
+            $parametter_insert_field[':required'] = $data_value_decode->required;
             $parametter_insert_field[':only_use_in_subform'] = 0;
             $parametter_insert_field[':ordering'] = $data_ordering[$i];
             $parametter_insert_field[':params'] = $json_params;
@@ -148,9 +159,6 @@ class field
             $parametter_insert_field[':modified_time'] = date("Y-m-d h:i:s");
             $parametter_insert_field[':modified_by'] = query::$user_id;
             $parametter_insert_field[':access'] = 1;
-
-            // query::$joomla4->Insert("INSERT INTO $j4_table_fieldgroup (asset_id,context,title,note,`description`,`state`,ordering,params,`language`,created,created_by,modified,modified_by,access) VALUES (:asset_id,:context,:title,:note,:description,:state,:ordering,:params,:language,:created,:created_by,:modified,:modified_by,:access);", $parametter_insert_fieldgroup);
-
 
             query::$joomla4->Insert("INSERT INTO $j4_table_fields (asset_id,context,group_id,title,`name`,label,default_value,`type`,note,`description`,`state`,`required`,only_use_in_subform,ordering,params,fieldparams,`language`,created_time,created_user_id,modified_time,modified_by,access) VALUES (:asset_id,:context,:group_id,:title,:name,:label,:default_value,:type,:note,:description,:state,:required,:only_use_in_subform,:ordering,:params,:fieldparams,:language,:created_time,:created_user_id,:modified_time,:modified_by,:access);", $parametter_insert_field);
         }

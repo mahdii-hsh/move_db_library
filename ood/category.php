@@ -142,7 +142,7 @@ class category
             $parametter_insert_category[':version'] = 1;
 
             // after this insert : update asset_id,parent_id,hits,path
-            query::$joomla4->Insert("INSERT INTO $j4_table_categories (asset_id,parent_id,lft,rgt,`level`,`path`,extension,title,alias,note,`description`,published,access,params,metadesc,metakey,metadata,created_user_id,created_time,modified_user_id,modified_time,hits,`language`,`version`) VALUES (:asset_id,:parent_id,:lft,:rgt,:level,:path,:extension,:title,:alias,:note,:description,:published,:access,:params,:metadesc,:metakey,:metadata,:created_user_id,:created_time,:modified_user_id,:modified_time,:hits,:language,:version)",$parametter_insert_category);
+            query::$joomla4->Insert("INSERT INTO $j4_table_categories (asset_id,parent_id,lft,rgt,`level`,`path`,extension,title,alias,note,`description`,published,access,params,metadesc,metakey,metadata,created_user_id,created_time,modified_user_id,modified_time,hits,`language`,`version`) VALUES (:asset_id,:parent_id,:lft,:rgt,:level,:path,:extension,:title,:alias,:note,:description,:published,:access,:params,:metadesc,:metakey,:metadata,:created_user_id,:created_time,:modified_user_id,:modified_time,:hits,:language,:version)", $parametter_insert_category);
 
             //--#4-- check for update rgt of root in category table
 
@@ -152,7 +152,7 @@ class category
                 $new_root_rgt = $category_rgt + 1;
                 $parametter_update_category['root_rgt'] = $new_root_rgt;
 
-                query::$joomla4->Insert("UPDATE $j4_table_categories set rgt=:root_rgt where title='ROOT'",$parametter_update_category);
+                query::$joomla4->Insert("UPDATE $j4_table_categories set rgt=:root_rgt where title='ROOT'", $parametter_update_category);
             }
 
             //--#4-- ---------INSERT INTO joomla4 assets table------- 
@@ -185,21 +185,15 @@ class category
 
                 $j2_field_id = query::$joomla2->getColumnMultiData("SELECT * from $j2_table_fields where `group`=$data_extra_fields_group[$i]", "id");
 
-                // echo "<hr/>";
-                // echo var_dump($j2_field_id);
-                // echo "category_id" . $category_id;
-                // echo "count" . count($j2_field_id);
-                // echo "< hr/>";
-
                 for ($j = 0; $j < count($j2_field_id); $j++) {
 
                     $j4_field_id = query::$joomla4->getColumnData("SELECT * from $table_map_field where j2_id=$j2_field_id[$j]", "j4_id");
 
                     //--#4-- ---------INSERT INTO joomla4 field_category table------- 
-                    $parametter_insert_field_category['field_id']=$j4_field_id;
-                    $parametter_insert_field_category['category_id']=$category_id;
+                    $parametter_insert_field_category['field_id'] = $j4_field_id;
+                    $parametter_insert_field_category['category_id'] = $category_id;
 
-                    query::$joomla4->Insert("INSERT INTO $j4_table_field_category (field_id,category_id) VALUES (:field_id,:category_id)",$parametter_insert_field_category);
+                    query::$joomla4->Insert("INSERT INTO $j4_table_field_category (field_id,category_id) VALUES (:field_id,:category_id)", $parametter_insert_field_category);
                 }
             }
         }
@@ -226,27 +220,27 @@ class category
                 //update lft & rgt of parent of category $ parent of category
                 //delete root_rgt element
                 array_pop($parametter_update_category);
-                $parametter_update_category[':parent_id']=$parent_id;
-                $parametter_update_category[':category_id']=$category_id;
+                $parametter_update_category[':parent_id'] = $parent_id;
+                $parametter_update_category[':category_id'] = $category_id;
 
-                query::$joomla4->Insert("UPDATE $j4_table_categories set parent_id=:parent_id where id=:category_id",$parametter_update_category);
+                query::$joomla4->Insert("UPDATE $j4_table_categories set parent_id=:parent_id where id=:category_id", $parametter_update_category);
 
                 array_pop($parametter_update_category);
-                
-                query::$joomla4->Insert("update $j4_table_categories set rgt=rgt+2 where id = :parent_id;",$parametter_update_category);
+
+                query::$joomla4->Insert("update $j4_table_categories set rgt=rgt+2 where id = :parent_id;", $parametter_update_category);
                 // ------UPDATE joomla4 asset table ------------------------
 
                 $category_asset_id = query::$joomla4->getColumnData("SELECT * from $table_map_name where j2_id=$data_id[$i]", "j4_asset_id");
 
-                $parametter_update_asset[':parent_asset_id']=$parent_asset_id;
-                $parametter_update_asset[':category_asset_id']=$category_asset_id;
-                                
-                query::$joomla4->Insert("update $j4_table_assets set parent_id=:parent_asset_id where id=:category_asset_id",$parametter_update_asset);
+                $parametter_update_asset[':parent_asset_id'] = $parent_asset_id;
+                $parametter_update_asset[':category_asset_id'] = $category_asset_id;
+
+                query::$joomla4->Insert("update $j4_table_assets set parent_id=:parent_asset_id where id=:category_asset_id", $parametter_update_asset);
 
                 array_pop($parametter_update_asset);
 
                 //update asset_id of parent
-                query::$joomla4->Insert("update $j4_table_assets set rgt=rgt+2 where id=:parent_asset_id",$parametter_update_asset);
+                query::$joomla4->Insert("update $j4_table_assets set rgt=rgt+2 where id=:parent_asset_id", $parametter_update_asset);
             }
         }
     }
