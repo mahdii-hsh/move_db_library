@@ -22,14 +22,24 @@ class fieldgroup
 
         $fieldgroup_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_fieldgroup", "count_id");
 
-        query::$joomla4->resetAutoIncrement($j4_table_fieldgroup);
-        query::$joomla4->resetAutoIncrement($j4_table_assets);
+        $fieldgroup_id_s = query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.fieldgroup.%';", "name");
+
+        query::$joomla4->resetAutoIncrement($j4_table_fieldgroup, utils::maxNameAsset($fieldgroup_id_s));
+        query::$joomla4->resetAutoIncrement($j4_table_assets, 0);
 
         if (query::$joomla4->checkExistTable($table_map_name) === null) {
-            query::$joomla4->createTable("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
+            query::$joomla4->defaultQuery("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
         } else {
-            query::$joomla4->resetAutoIncrement($table_map_name);
+            query::$joomla4->resetAutoIncrement($table_map_name, 0);
         }
+
+        $title_type = query::$joomla4->getDataType($j4_table_assets, "Type")[6];
+
+        if ($title_type === 'varchar(100)') {
+            query::$joomla4->defaultQuery("ALTER TABLE $j4_table_assets MODIFY COLUMN title varchar(255) NOT NULL");
+        }
+
+        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_fieldgroup", "total_rows")) === 0;
 
         for ($i = 0; $i < $fieldgroup_count; $i++) {
 
@@ -39,7 +49,10 @@ class fieldgroup
             $asset_id = query::$joomla4->getColumnData("SELECT MAX(id) as max_id from $j4_table_assets", "max_id") + 1;
 
             //get id of fieldgroup in joomla4 fieldgroup table
-            $fieldgroup_id = query::$joomla4->getColumnData("SELECT MAX(id) as max_id from $j4_table_fieldgroup", "max_id") + 1;
+            $fieldgroup_id = query::$joomla4->getAutoIncrement($j4_table_fieldgroup);
+            if (!$is_empty_table) {
+                $fieldgroup_id += 1;
+            }
 
             $fieldgroup_name = "com_content.fieldgroup.$fieldgroup_id";
 

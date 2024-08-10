@@ -4,7 +4,7 @@ require_once './query.php';
 
 class category
 {
-    static function add_category($j2_table_categories, $j2_table_fields, $j2_table_items, $j4_table_categories, $j4_table_assets, $j4_table_fields, $j4_table_field_category)
+    static function add_category($j2_table_categories, $j2_table_fields, $j2_table_items, $j4_table_categories, $j4_table_assets,$j4_table_field_category)
     {
 
 
@@ -57,17 +57,20 @@ class category
         ////////////////////////////////////////////////
         $category_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_categories", "count_id");
 
+        $category_id_s=query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.category.%';","name");
 
-        query::$joomla4->resetAutoIncrement($j4_table_categories);
-        query::$joomla4->resetAutoIncrement($j4_table_assets);
+        query::$joomla4->resetAutoIncrement($j4_table_categories,utils::maxNameAsset($category_id_s));
+        query::$joomla4->resetAutoIncrement($j4_table_assets,0);
 
         //if map category table not exist,create a table
 
         if (query::$joomla4->checkExistTable($table_map_name) === null) {
-            query::$joomla4->createTable("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
+            query::$joomla4->defaultQuery("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
         } else {
-            query::$joomla4->resetAutoIncrement($table_map_name);
+            query::$joomla4->resetAutoIncrement($table_map_name,0);
         }
+
+        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_categories", "total_rows")) === 0;
 
         // --------- add category in category table -------------
         for ($i = 0; $i < $category_count; $i++) {
@@ -89,7 +92,10 @@ class category
             // insert into map table
             $asset_id = query::$joomla4->getColumnData("SELECT max(id) as max_id from $j4_table_assets", "max_id") + 1;
 
-            $category_id = query::$joomla4->getColumnData("SELECT max(id) as max_id from $j4_table_categories", "max_id") + 1;
+            $category_id = query::$joomla4->getAutoIncrement($j4_table_categories);
+            if (!$is_empty_table) {
+                $category_id += 1;
+            }
 
             // --#3--
             //alias in joomla4 should be lower case
@@ -166,20 +172,6 @@ class category
             $parametter_insert_assets[':rules'] = '{}';
 
             query::$joomla4->Insert("INSERT INTO $j4_table_assets (parent_id,lft,rgt,`level`,`name`,title,rules) VALUES (:parent_id,:lft,:rgt,:level,:name,:title,:rules);", $parametter_insert_assets);
-
-            // if ($data_extra_fields_group[$i] !== 0) {
-
-            //     $category_id = query::$joomla4->getColumnData("SELECT * from $table_map_name where j2_id=$data_id[$i]", "j4_id");
-
-            //     for ($j = 0; $j < $field_count; $j++) {
-
-            //         if ($data_extra_fields_group[$i] === $data_field_j2_group[$j]) {
-            //             $data_field_j4_id = query::$joomla4->getColumnData("SELECT * from $table_map_field where j2_id=$data_field_j2_id[$j]", "j4_id");
-
-            //             query::$joomla4->Insert("insert into $j4_table_field_category values($data_field_j4_id,$category_id)");
-            //         }
-            //     }
-            // }
 
             if ($data_extra_fields_group[$i] !== 0) {
 

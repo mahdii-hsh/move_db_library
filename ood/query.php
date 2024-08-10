@@ -1,5 +1,5 @@
 <?php
-
+require_once './utils.php';
 
 class query
 
@@ -91,32 +91,42 @@ class query
         // $conn = null;
     }
 
-    function resetAutoIncrement($table_name)
+    function getAutoIncrement($table_name)
     {
         try {
 
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->exec("SET NAMES 'utf8mb4'");
 
-            $stmt = $this->conn->prepare("select max(id) as max_id from $table_name");
+            $stmt = $this->conn->prepare("SELECT `AUTO_INCREMENT` FROM  INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '$this->dbName' AND TABLE_NAME   = '$table_name'");
             $stmt->execute();
 
             $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($result as $row) {
-                $data = $row["max_id"];
+                $data = $row["AUTO_INCREMENT"];
             }
         } catch (PDOException $e) {
             echo $result . "<br>" . $e->getMessage();
         }
-        if ($data == null) {
+        if ($data === null) {
             $data = 0;
         }
+        return $data;
+    }
+
+    function resetAutoIncrement($table_name, $max_asset_id)
+    {
+
+        $data = self::getAutoIncrement($table_name);
+
+        $add_auto_increment = utils::addAutoIncrement($data, $max_asset_id) + $data;
+
         try {
 
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             // set the PDO error mode to exception
-            $sql = "alter table $table_name AUTO_INCREMENT = $data";
+            $sql = "alter table $table_name AUTO_INCREMENT = $add_auto_increment";
             // use exec() because no results are returned
             $this->conn->exec($sql);
         } catch (PDOException $e) {
@@ -146,7 +156,29 @@ class query
         }
     }
 
-    function createTable($query)
+    function getDataType($table_name, $column)
+    {
+
+        try {
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->conn->exec("SET NAMES 'utf8mb4'");
+
+            $stmt = $this->conn->prepare("show fields from $table_name;");
+            $stmt->execute();
+
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $dataArray = [];
+            foreach ($result as $row) {
+                $data = $row[$column];
+                array_push($dataArray, $data);
+            }
+        } catch (PDOException $e) {
+            echo $result . "<br>" . $e->getMessage();
+        }
+        return $dataArray;
+    }
+
+    function defaultQuery($query)
     {
 
         try {

@@ -30,21 +30,24 @@ class field
 
         $data_ordering = query::$joomla2->getColumnMultiData($select_table_query, "ordering");
 
-        $data_value=query::$joomla2->getColumnMultiData($select_table_query, "value");
+        $data_value = query::$joomla2->getColumnMultiData($select_table_query, "value");
 
         ////////////////////////////////////////////////
         $field_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_fields", "count_id");
 
-        query::$joomla4->resetAutoIncrement($j4_table_fields);
-        query::$joomla4->resetAutoIncrement($j4_table_assets);
+        $field_id_s = query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.field.%';", "name");
+
+        query::$joomla4->resetAutoIncrement($j4_table_fields, utils::maxNameAsset($field_id_s));
+        query::$joomla4->resetAutoIncrement($j4_table_assets, 0);
 
         // if map field table not exist,create a table
         if (query::$joomla4->checkExistTable($table_map_name) === null) {
-            query::$joomla4->createTable("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
+            query::$joomla4->defaultQuery("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
         } else {
-            query::$joomla4->resetAutoIncrement($table_map_name);
+            query::$joomla4->resetAutoIncrement($table_map_name, 0);
         }
 
+        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_fields", "total_rows")) === 0;
 
         for ($i = 0; $i < $field_count; $i++) {
 
@@ -55,7 +58,11 @@ class field
             $asset_id = query::$joomla4->getColumnData("SELECT MAX(id) as max_id from $j4_table_assets", "max_id") + 1;
 
             //get id of fieldgroup in joomla4 fieldgroup table
-            $field_id = query::$joomla4->getColumnData("SELECT MAX(id) as max_id from $j4_table_fields", "max_id") + 1;
+            $field_id = query::$joomla4->getAutoIncrement($j4_table_fields);
+            if (!$is_empty_table) {
+                $field_id += 1;
+            }
+
 
             $field_name = "com_content.field.$field_id";
 
@@ -71,11 +78,10 @@ class field
             // a string for fieldparams column in joomla4 fields table
             $fieldparams_json = '{"filter":"","maxlength":""}';
 
-            if($data_type[$i]==='textfield'){
-                $field_type='text';
-            }
-            else{
-                $field_type=$data_type[$i];
+            if ($data_type[$i] === 'textfield') {
+                $field_type = 'text';
+            } else {
+                $field_type = $data_type[$i];
             }
 
             //--#3-- ---------INSERT INTO map table----------
@@ -116,7 +122,7 @@ class field
             //get id of new field in field table == name in assets table
 
             //--#4-- ---------INSERT INTO joomla4 assets table------- 
-            
+
             $parametter_insert_assets[':parent_id'] = $parent_asset_id;
             $parametter_insert_assets[':lft'] = $asset_lft;
             $parametter_insert_assets[':rgt'] = $asset_rgt;
