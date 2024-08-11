@@ -24,7 +24,13 @@ class fieldgroup
 
         $fieldgroup_id_s = query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.fieldgroup.%';", "name");
 
-        query::$joomla4->resetAutoIncrement($j4_table_fieldgroup, utils::maxNameAsset($fieldgroup_id_s));
+        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_fieldgroup", "total_rows")) === 0;
+
+        if (!$is_empty_table) {
+            query::$joomla4->resetAutoIncrement($j4_table_fieldgroup, utils::maxNameAsset($fieldgroup_id_s + 1));
+        } else {
+            query::$joomla4->resetAutoIncrement($j4_table_fieldgroup, utils::maxNameAsset($fieldgroup_id_s));
+        }
         query::$joomla4->resetAutoIncrement($j4_table_assets, 0);
 
         if (query::$joomla4->checkExistTable($table_map_name) === null) {
@@ -39,8 +45,6 @@ class fieldgroup
             query::$joomla4->defaultQuery("ALTER TABLE $j4_table_assets MODIFY COLUMN title varchar(255) NOT NULL");
         }
 
-        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_fieldgroup", "total_rows")) === 0;
-
         for ($i = 0; $i < $fieldgroup_count; $i++) {
 
             //--#5-- add to map table
@@ -50,9 +54,6 @@ class fieldgroup
 
             //get id of fieldgroup in joomla4 fieldgroup table
             $fieldgroup_id = query::$joomla4->getAutoIncrement($j4_table_fieldgroup);
-            if (!$is_empty_table) {
-                $fieldgroup_id += 1;
-            }
 
             $fieldgroup_name = "com_content.fieldgroup.$fieldgroup_id";
 

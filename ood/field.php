@@ -37,7 +37,13 @@ class field
 
         $field_id_s = query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.field.%';", "name");
 
-        query::$joomla4->resetAutoIncrement($j4_table_fields, utils::maxNameAsset($field_id_s));
+        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_fields", "total_rows")) === 0;
+
+        if (!$is_empty_table) {
+            query::$joomla4->resetAutoIncrement($j4_table_fields, utils::maxNameAsset($field_id_s) + 1);
+        } else {
+            query::$joomla4->resetAutoIncrement($j4_table_fields, utils::maxNameAsset($field_id_s));
+        }
         query::$joomla4->resetAutoIncrement($j4_table_assets, 0);
 
         // if map field table not exist,create a table
@@ -47,11 +53,10 @@ class field
             query::$joomla4->resetAutoIncrement($table_map_name, 0);
         }
 
-        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_fields", "total_rows")) === 0;
 
         for ($i = 0; $i < $field_count; $i++) {
 
-
+            
             //--#10-- add to map table
 
             //get asset_id
@@ -59,10 +64,6 @@ class field
 
             //get id of fieldgroup in joomla4 fieldgroup table
             $field_id = query::$joomla4->getAutoIncrement($j4_table_fields);
-            if (!$is_empty_table) {
-                $field_id += 1;
-            }
-
 
             $field_name = "com_content.field.$field_id";
 

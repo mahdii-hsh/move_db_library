@@ -4,7 +4,7 @@ require_once './query.php';
 
 class category
 {
-    static function add_category($j2_table_categories, $j2_table_fields, $j2_table_items, $j4_table_categories, $j4_table_assets,$j4_table_field_category)
+    static function add_category($j2_table_categories, $j2_table_fields, $j2_table_items, $j4_table_categories, $j4_table_assets, $j4_table_field_category)
     {
 
 
@@ -57,20 +57,25 @@ class category
         ////////////////////////////////////////////////
         $category_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_categories", "count_id");
 
-        $category_id_s=query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.category.%';","name");
+        $category_id_s = query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.category.%';", "name");
 
-        query::$joomla4->resetAutoIncrement($j4_table_categories,utils::maxNameAsset($category_id_s));
-        query::$joomla4->resetAutoIncrement($j4_table_assets,0);
+        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_categories", "total_rows")) === 0;
+
+        if (! $is_empty_table) {
+            query::$joomla4->resetAutoIncrement($j4_table_categories, utils::maxNameAsset($category_id_s)+1);
+        } else {
+            query::$joomla4->resetAutoIncrement($j4_table_categories, utils::maxNameAsset($category_id_s));
+        }
+        query::$joomla4->resetAutoIncrement($j4_table_assets, 0);
 
         //if map category table not exist,create a table
 
         if (query::$joomla4->checkExistTable($table_map_name) === null) {
             query::$joomla4->defaultQuery("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
         } else {
-            query::$joomla4->resetAutoIncrement($table_map_name,0);
+            query::$joomla4->resetAutoIncrement($table_map_name, 0);
         }
 
-        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_categories", "total_rows")) === 0;
 
         // --------- add category in category table -------------
         for ($i = 0; $i < $category_count; $i++) {
@@ -93,9 +98,6 @@ class category
             $asset_id = query::$joomla4->getColumnData("SELECT max(id) as max_id from $j4_table_assets", "max_id") + 1;
 
             $category_id = query::$joomla4->getAutoIncrement($j4_table_categories);
-            if (!$is_empty_table) {
-                $category_id += 1;
-            }
 
             // --#3--
             //alias in joomla4 should be lower case

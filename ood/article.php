@@ -1,11 +1,12 @@
 <?php
 
 require_once './query.php';
+require_once './utils.php';
 
 class article
 {
 
-    static function add_atricle($j2_table_items, $j2_table_category, $j2_table_fields, $j4_table_content, $j4_table_category, $j4_table_assets, $j4_table_fields, $j4_table_field_values, $j4_table_workflow_associations)
+    static function add_atricle($j2_table_items, $j4_table_content, $j4_table_assets, $j4_table_field_values, $j4_table_workflow_associations, $j4_table_featured)
     {
 
         $table_map_category = "map_categories";
@@ -15,10 +16,11 @@ class article
         $parametter_insert_assets = [];
         $parametter_insert_article = [];
         $parametter_insert_workflow_associate = [];
+        $parametter_insert_featured = [];
         $parametter_insert_field_value = [];
 
         // --#1-- get data
-        $j2_select_item_query = "SELECT * from $j2_table_items where id=2";
+        $j2_select_item_query = "SELECT * from $j2_table_items";
 
         $data_name = query::$joomla2->getColumnMultiData($j2_select_item_query, "title");
 
@@ -42,6 +44,8 @@ class article
 
         $data_metadata = query::$joomla2->getColumnMultiData($j2_select_item_query, "metadata");
 
+        $data_trash = query::$joomla2->getColumnMultiData($j2_select_item_query, "trash");
+
         $data_access = query::$joomla2->getColumnMultiData($j2_select_item_query, "access");
 
         $data_hits = query::$joomla2->getColumnMultiData($j2_select_item_query, "hits");
@@ -51,12 +55,20 @@ class article
         $data_featured = query::$joomla2->getColumnMultiData($j2_select_item_query, "featured");
 
         ////////////////////////////////////////////////
+        $article_s = query::$joomla4->getColumnMultiData("select * from $j4_table_assets where name like '%com_content.article.%';", "name");
+
+        $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_content", "total_rows")) === 0;
+
+        if (!$is_empty_table) {
+            query::$joomla4->resetAutoIncrement($j4_table_content, utils::maxNameAsset($article_s)+1);
+        } else {
+            query::$joomla4->resetAutoIncrement($j4_table_content, utils::maxNameAsset($article_s));
+        }
+        query::$joomla4->resetAutoIncrement($j4_table_assets, 0);
+
+
         $article_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_items", "count_id");
-
-        query::$joomla4->resetAutoIncrement($j4_table_content);
-        query::$joomla4->resetAutoIncrement($j4_table_assets);
-
-        for ($i = 0; $i < 1; $i++) {
+        for ($i = 0; $i < $article_count; $i++) {
 
             // --#2--
 
@@ -66,7 +78,7 @@ class article
             $asset_id = query::$joomla4->getColumnData("SELECT max(id) as max_id from $j4_table_assets", "max_id") + 1;
 
             //get id of article(book) 
-            $article_id = query::$joomla4->getColumnData("SELECT max(id) as max_id from $j4_table_content", "max_id") + 1;
+            $article_id = query::$joomla4->getAutoIncrement($j4_table_content);
 
             $article_name = "com_content.$article_id";
 
@@ -84,6 +96,11 @@ class article
 
             $parent_asset_id = query::$joomla4->getColumnData("SELECT * from $table_map_category where j2_id=$data_catid[$i]", "j4_asset_id");
 
+            if ($data_trash === 1) {
+                $data_state = -2;
+            } else {
+                $data_state = 1;
+            }
 
             //--#4-- ---------INSERT INTO joomla4 assets table------- 
 
@@ -106,7 +123,7 @@ class article
             $parametter_insert_article[':alias'] = $article_alias;
             $parametter_insert_article[':introtext'] = $data_introtext[$i];
             $parametter_insert_article[':fulltext'] = '';
-            $parametter_insert_article[':state'] = 1;
+            $parametter_insert_article[':state'] = $data_state;
             $parametter_insert_article[':catid'] = $category_id;
             $parametter_insert_article[':created'] = date("Y-m-d h:i:s");
             $parametter_insert_article[':created_by'] = query::$user_id;
@@ -138,10 +155,26 @@ class article
 
             query::$joomla4->Insert("INSERT INTO $j4_table_workflow_associations(item_id,stage_id,extension) VALUES (:item_id,:stage_id,:extension)", $parametter_insert_workflow_associate);
 
-            if ($data_extra_fields[$i] !== null) {
+            //------- INSERT INTO featured -----------
+
+            if ($data_featured[$i] === 1) {
+                $parametter_insert_featured[':content_id'] = $article_id;
+                $parametter_insert_featured[':ordering'] = $data_ordering[$i];
+
+
+                query::$joomla4->Insert("INSERT INTO $j4_table_featured (content_id,ordering) VALUES (:content_id,:ordering)", $parametter_insert_featured);
+            }
+
+            //------- INSERT values of fields -----------
+
+
+            if ($data_extra_fields[$i] !== null && $data_trash[$i] !== 1) {
                 $data_fields_array = json_decode($data_extra_fields[$i]);
 
                 // --#3--
+                echo "<hr />";
+                echo $i;
+                echo "<hr />";
 
                 for ($j = 0; $j < count($data_fields_array); $j++) {
 
