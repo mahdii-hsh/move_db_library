@@ -9,8 +9,8 @@ class article
     static function add_atricle($j2_table_items, $j4_table_content, $j4_table_assets, $j4_table_field_values, $j4_table_workflow_associations, $j4_table_featured)
     {
 
+        $table_map_name = "map_articles";
         $table_map_category = "map_categories";
-
         $table_map_field = "map_fields";
 
         $parametter_insert_assets = [];
@@ -23,6 +23,8 @@ class article
         $j2_select_item_query = "SELECT * from $j2_table_items";
 
         $data_name = query::$joomla2->getColumnMultiData($j2_select_item_query, "title");
+
+        $data_id = query::$joomla2->getColumnMultiData($j2_select_item_query, "id");
 
         $data_alias = query::$joomla2->getColumnMultiData($j2_select_item_query, "alias");
 
@@ -60,11 +62,17 @@ class article
         $is_empty_table = (query::$joomla4->getColumnData("SELECT COUNT(*) AS total_rows FROM $j4_table_content", "total_rows")) === 0;
 
         if (!$is_empty_table) {
-            query::$joomla4->resetAutoIncrement($j4_table_content, utils::maxNameAsset($article_s)+1);
+            query::$joomla4->resetAutoIncrement($j4_table_content, utils::maxNameAsset($article_s) + 1);
         } else {
             query::$joomla4->resetAutoIncrement($j4_table_content, utils::maxNameAsset($article_s));
         }
         query::$joomla4->resetAutoIncrement($j4_table_assets, 0);
+
+        if (query::$joomla4->checkExistTable($table_map_name) === null) {
+            query::$joomla4->defaultQuery("CREATE TABLE $table_map_name (id int NOT NULL auto_increment,j2_id int NOT NULL,j4_id int NOT NULL ,j4_asset_id int,name varchar(225),primary key(id) );");
+        } else {
+            query::$joomla4->resetAutoIncrement($table_map_name, 0);
+        }
 
 
         $article_count = query::$joomla2->getColumnData("SELECT COUNT(id) as count_id from $j2_table_items", "count_id");
@@ -101,6 +109,14 @@ class article
             } else {
                 $data_state = 1;
             }
+
+            //--#3-- ---------INSERT INTO map table----------
+            $parametter_insert_map[':j2_id'] = $data_id[$i];
+            $parametter_insert_map[':j4_id'] = $article_id;
+            $parametter_insert_map[':j4_asset_id'] = $asset_id;
+            $parametter_insert_map[':name'] = $data_name[$i];
+
+            query::$joomla4->Insert("INSERT INTO $table_map_name (j2_id,j4_id,j4_asset_id,`name`) VALUES(:j2_id,:j4_id,:j4_asset_id,:name)", $parametter_insert_map);
 
             //--#4-- ---------INSERT INTO joomla4 assets table------- 
 
